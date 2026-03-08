@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/raw/:id"
+  to = "/.netlify/functions/paste?id=:id"
+  status = 200
+
+[[redirects]]
+  from = "/api/paste"
+  to = "/.netlify/functions/paste"
+  status = 200

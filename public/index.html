@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NullDefense — Raw Text Paste Service</title>
+  <meta name="description"
+    content="NullDefense — Create raw text pastes with clean URLs. Perfect for PowerShell irm | iex one-liners." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./css/style.css" />
+
+</head>
+
+<body>
+  <!-- Animated background -->
+  <div class="bg-noise"></div>
+  <div class="bg-gradient-orb bg-gradient-orb--1"></div>
+  <div class="bg-gradient-orb bg-gradient-orb--2"></div>
+  <div class="bg-gradient-orb bg-gradient-orb--3"></div>
+  <div class="bg-scanline"></div>
+  <canvas id="particleCanvas" class="bg-particles"></canvas>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <div class="navbar__brand">
+        <div class="navbar__logo">
+          <div class="navbar__logo-ring"></div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+            <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="navbar__name">Null<span class="text-accent">Defense</span></span>
+      </div>
+      <div class="navbar__status">
+        <span class="status-dot"></span>
+        <span class="navbar__status-text">System Online</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero__badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+      Instant Raw Links
+    </div>
+    <h1 class="hero__title">
+      <span class="hero__title-line">Raw Text.</span>
+      <span class="hero__title-line hero__title-line--accent">Zero Friction.</span>
+    </h1>
+    <p class="hero__subtitle">
+      Create pastes, get clean raw URLs. Built for <code>irm | iex</code> workflows.
+    </p>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Editor Section -->
+    <section class="editor-section" id="editorSection">
+      <div class="editor-card">
+        <div class="editor-card__glow"></div>
+        <div class="editor-card__toolbar">
+          <div class="toolbar__dots">
+            <span class="dot dot--red"></span>
+            <span class="dot dot--yellow"></span>
+            <span class="dot dot--green"></span>
+          </div>
+          <div class="toolbar__center">
+            <svg class="toolbar__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
+              <polyline points="13 2 13 9 20 9" />
+            </svg>
+            <span class="toolbar__filename">untitled.ps1</span>
+          </div>
+          <div class="toolbar__actions">
+            <button class="toolbar__btn" id="clearBtn" title="Clear editor">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-card__body">
+          <div class="line-numbers" id="lineNumbers">
+            <span>1</span>
+          </div>
+          <textarea class="editor-card__textarea" id="codeEditor" placeholder="# Paste your script here..."
+            spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+        </div>
+
+        <div class="editor-card__footer">
+          <div class="footer__left">
+            <span class="footer__stat" id="charCount">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+              </svg>
+              0 chars
+            </span>
+            <span class="footer__stat" id="lineCount">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
+              </svg>
+              0 lines
+            </span>
+          </div>
+          <button class="btn btn--primary" id="createBtn">
+            <span class="btn__text">Create Paste</span>
+            <svg class="btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+            <div class="btn__loader"></div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Result Section -->
+    <section class="result-section hidden" id="resultSection">
+      <div class="result-card">
+        <div class="result-card__glow"></div>
+
+        <div class="result-card__header">
+          <div class="result-card__check">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="result-card__title">Paste Created</h2>
+            <p class="result-card__subtitle">Your raw link is ready to use</p>
+          </div>
+        </div>
+
+        <!-- Raw URL -->
+        <div class="result-field">
+          <label class="result-field__label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+            </svg>
+            Raw URL <span class="label-badge">Protected</span>
+          </label>
+          <div class="result-field__row">
+            <input type="text" class="result-field__input" id="rawUrlInput" readonly />
+            <button class="btn btn--copy" id="copyRawBtn" data-copy="rawUrlInput">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PowerShell One-liner -->
+        <div class="result-field">
+          <label class="result-field__label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
+            </svg>
+            PowerShell One-Liner
+          </label>
+          <div class="result-field__row">
+            <input type="text" class="result-field__input result-field__input--mono" id="psOnelinerInput" readonly />
+            <button class="btn btn--copy" id="copyPsBtn" data-copy="psOnelinerInput">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="result-card__divider"></div>
+
+        <button class="btn btn--new" id="newPasteBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New Paste
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <div class="toast__icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+    <span class="toast__text" id="toastText"></span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <span class="footer__text">&copy; 2026 NullDefense</span>
+      <span class="footer__sep">&bull;</span>
+      <span class="footer__text">Raw text, zero friction</span>
+    </div>
+  </footer>
+
+  <script src="./js/app.js"></script>
+</body>
+
+</html>
