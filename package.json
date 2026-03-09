@@ -1,7 +1,6 @@
 {
   "name": "nulldefense",
   "version": "1.0.0",
-  "type": "module",
   "description": "NullDefense — Raw text paste service for PowerShell irm | iex",
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
