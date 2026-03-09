@@ -89,7 +89,10 @@ export const handler = async (event) => {
 
   // --- GET PASTE ---
   if (httpMethod === "GET") {
-    const id = event.queryStringParameters?.id;
+    // Support both ?id=xxx and /raw/xxx path patterns
+    const qsId = event.queryStringParameters?.id;
+    const pathId = event.path?.split("/").pop();
+    const id = qsId || (pathId && pathId !== "paste" ? pathId : null);
     const userAgent = headers["user-agent"] || "";
 
     if (!id) {
