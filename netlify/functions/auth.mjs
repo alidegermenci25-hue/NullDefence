@@ -1,11 +1,10 @@
 import crypto from 'crypto';
 
-const SITE_ID = "c3c7670f-0c19-4a55-8d4c-b233dc320262";
-const TOKEN = "nfp_9eGBfG9JiD2bBuJtDazkxPqXaLGzkmoK4ade";
+const SITE_ID = process.env.NETLIFY_SITE_ID;
+const TOKEN = process.env.NETLIFY_ACCESS_TOKEN;
 const BASE = `https://api.netlify.com/api/v1/blobs/${SITE_ID}`;
 const AUTH = { Authorization: `Bearer ${TOKEN}` };
-// Cloudflare Turnstile demo secret (always passes in demo mode)
-const TURNSTILE_SECRET = "1x0000000000000000000000000000000AA";
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET;
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 const json = (body, status = 200) => ({ statusCode: status, body: JSON.stringify(body), headers: { ...cors, "Content-Type": "application/json" } });

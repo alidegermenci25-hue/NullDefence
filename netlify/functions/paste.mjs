@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 
-const SITE_ID = process.env.NETLIFY_SITE_ID || "c3c7670f-0c19-4a55-8d4c-b233dc320262";
-const TOKEN = process.env.NETLIFY_ACCESS_TOKEN || "nfp_9eGBfG9JiD2bBuJtDazkxPqXaLGzkmoK4ade";
+const SITE_ID = process.env.NETLIFY_SITE_ID;
+const TOKEN = process.env.NETLIFY_ACCESS_TOKEN;
 const STORE = "pastes";
 const BLOBS_BASE = `https://api.netlify.com/api/v1/blobs/${SITE_ID}/${STORE}`;
 

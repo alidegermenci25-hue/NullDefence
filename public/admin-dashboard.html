@@ -476,44 +476,102 @@
     <main>
         <div class="page-header">
             <h1>Admin Dashboard</h1>
-            <p>View and manage all protected pastes</p>
+            <p id="pageDesc">View and manage all protected pastes</p>
         </div>
 
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="label">Total Pastes</div>
-                <div class="val" id="statTotal">—</div>
+        <div class="tabs" style="display:flex;gap:1rem;margin-bottom:2rem;border-bottom:1px solid var(--border)">
+            <button class="tab-btn active" id="tabPastes" onclick="switchView('pastes')"
+                style="background:none;border:none;color:var(--accent);padding:1rem;cursor:pointer;font-weight:700;border-bottom:2px solid var(--accent)">Pastes</button>
+            <button class="tab-btn" id="tabUsers" onclick="switchView('users')"
+                style="background:none;border:none;color:var(--dim);padding:1rem;cursor:pointer;font-weight:700;border-bottom:2px solid transparent">Users</button>
+        </div>
+
+        <div id="pastesSection">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="label">Total Pastes</div>
+                    <div class="val" id="statTotal">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Access Level</div>
+                    <div class="val" style="font-size:1.1rem;line-height:1.8;color:var(--success)">Root</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Site</div>
+                    <div class="val" style="font-size:.9rem;line-height:2;color:var(--dim)">nulldefence.netlify.app
+                    </div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="label">Access Level</div>
-                <div class="val" style="font-size:1.1rem;line-height:1.8;color:var(--success)">Root</div>
+
+            <div class="search-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search paste ID…" oninput="filterPastes()" />
             </div>
-            <div class="stat-card">
-                <div class="label">Site</div>
-                <div class="val" style="font-size:.9rem;line-height:2;color:var(--dim)">nulldefence.netlify.app</div>
+
+            <div id="pasteList">
+                <div class="spinner">
+                    <div class="spin"></div>Loading pastes…
+                </div>
             </div>
         </div>
 
-        <div class="search-bar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input type="text" id="searchInput" placeholder="Search paste ID…" oninput="filterPastes()" />
-        </div>
+        <div id="usersSection" style="display:none">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="label">Total Users</div>
+                    <div class="val" id="statUsers">—</div>
+                </div>
+                <div class="stat-card"
+                    style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div class="label">Action</div>
+                        <div class="val" style="font-size:1.1rem">Account Management</div>
+                    </div>
+                    <button class="btn-sm btn-show" onclick="openCreateUserModal()">+ Create User</button>
+                </div>
+            </div>
 
-        <div id="pasteList">
-            <div class="spinner">
-                <div class="spin"></div>Loading pastes…
+            <div id="userList">
+                <div class="spinner">
+                    <div class="spin"></div>Loading users…
+                </div>
             </div>
         </div>
     </main>
 
+    <!-- Create User Modal (Simple implementation) -->
+    <div id="userModal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+        <div
+            style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:2rem; width:100%; max-width:400px;">
+            <h2 id="modalTitle" style="margin-bottom:1.5rem">Create User</h2>
+            <div style="margin-bottom:1rem">
+                <label style="display:block; font-size:0.8rem; color:var(--dim); margin-bottom:0.5rem">Username</label>
+                <input type="text" id="modalUsername"
+                    style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:0.8rem; color:var(--text); outline:none; font-family:inherit;">
+            </div>
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block; font-size:0.8rem; color:var(--dim); margin-bottom:0.5rem">Password</label>
+                <input type="text" id="modalPassword"
+                    style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:0.8rem; color:var(--text); outline:none; font-family:inherit;">
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                <button class="nav-logout" onclick="closeUserModal()">Cancel</button>
+                <button class="btn-sm btn-show" id="modalSubmit" onclick="submitUserModal()">Create</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let CODE = '';
         let allPastes = [];
+        let allUsers = [];
         let expanded = {};
         let rawCache = {};
+        let editingUser = null;
 
         function logout() {
             sessionStorage.removeItem('nd_admin_code');
@@ -525,15 +583,169 @@
             if (!CODE) { window.location.href = '/admin.html'; return; }
 
             try {
+                // Initial load: Pastes
                 const res = await fetch(`/api/admin?code=${encodeURIComponent(CODE)}&action=list`);
                 if (res.status === 401) { logout(); return; }
                 const data = await res.json();
                 allPastes = data.pastes || [];
                 document.getElementById('statTotal').textContent = allPastes.length;
                 renderList(allPastes);
+
+                // Preload users
+                fetchUsers();
             } catch (e) {
                 document.getElementById('pasteList').innerHTML = `<div class="empty"><p>Failed to load pastes: ${e.message}</p></div>`;
             }
+        }
+
+        function switchView(view) {
+            const isPastes = view === 'pastes';
+            document.getElementById('pastesSection').style.display = isPastes ? 'block' : 'none';
+            document.getElementById('usersSection').style.display = isPastes ? 'none' : 'block';
+            document.getElementById('tabPastes').classList.toggle('active', isPastes);
+            document.getElementById('tabUsers').classList.toggle('active', !isPastes);
+            document.getElementById('tabPastes').style.color = isPastes ? 'var(--accent)' : 'var(--dim)';
+            document.getElementById('tabPastes').style.borderBottomColor = isPastes ? 'var(--accent)' : 'transparent';
+            document.getElementById('tabUsers').style.color = isPastes ? 'var(--dim)' : 'var(--accent)';
+            document.getElementById('tabUsers').style.borderBottomColor = isPastes ? 'transparent' : 'var(--accent)';
+            document.getElementById('pageDesc').textContent = isPastes ? 'View and manage all protected pastes' : 'Manage user accounts and credentials';
+
+            if (!isPastes && !allUsers.length) fetchUsers();
+        }
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch(`/api/admin?code=${encodeURIComponent(CODE)}&action=listUsers`);
+                const data = await res.json();
+                allUsers = data.users || [];
+                document.getElementById('statUsers').textContent = allUsers.length;
+                renderUserList(allUsers);
+            } catch (e) {
+                document.getElementById('userList').innerHTML = `<div class="empty"><p>Failed to load users: ${e.message}</p></div>`;
+            }
+        }
+
+        function renderUserList(users) {
+            const list = document.getElementById('userList');
+            if (!users.length) {
+                list.innerHTML = `<div class="empty"><p>No users found</p></div>`;
+                return;
+            }
+            list.innerHTML = users.map(u => {
+                const date = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown';
+                const pass = u.plainPassword || '********';
+                return `
+                    <div class="paste-card" style="margin-bottom:0.75rem">
+                        <div class="paste-header" style="cursor:default">
+                            <div class="paste-id">
+                                <div class="paste-id-dot" style="background:var(--success)"></div>
+                                <div>
+                                    <div class="paste-id-text">${u.username}</div>
+                                    <div class="paste-id-date">Created: ${date}</div>
+                                </div>
+                            </div>
+                            <div class="paste-actions">
+                                <div style="display:flex; align-items:center; background:rgba(255,255,255,0.03); padding:0.3rem 0.6rem; border-radius:8px; border:1px solid var(--border); margin-right:0.5rem">
+                                    <span style="font-size:0.7rem; color:var(--dim); margin-right:0.5rem">Pass:</span>
+                                    <span id="pass-${u.username}" style="font-family:'JetBrains Mono'; font-size:0.8rem; color:var(--accent); filter:blur(4px); transition:filter 0.2s" onclick="this.style.filter='none'">${pass}</span>
+                                </div>
+                                <button class="btn-sm btn-raw" onclick="editUser('${u.username}')">Rename</button>
+                                <button class="btn-sm btn-edit" onclick="changeUserPassword('${u.username}')">Password</button>
+                                <button class="btn-sm btn-delete" onclick="deleteUser('${u.username}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openCreateUserModal() {
+            editingUser = null;
+            document.getElementById('modalTitle').textContent = 'Create User';
+            document.getElementById('modalUsername').value = '';
+            document.getElementById('modalUsername').disabled = false;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalSubmit').textContent = 'Create';
+            document.getElementById('userModal').style.display = 'flex';
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        function editUser(username) {
+            editingUser = { type: 'rename', oldName: username };
+            document.getElementById('modalTitle').textContent = 'Rename User';
+            document.getElementById('modalUsername').value = username;
+            document.getElementById('modalUsername').disabled = false;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').placeholder = '(Unchanged)';
+            document.getElementById('modalSubmit').textContent = 'Rename';
+            document.getElementById('userModal').style.display = 'flex';
+        }
+
+        function changeUserPassword(username) {
+            editingUser = { type: 'password', username: username };
+            document.getElementById('modalTitle').textContent = 'Change Password';
+            document.getElementById('modalUsername').value = username;
+            document.getElementById('modalUsername').disabled = true;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').placeholder = 'New Password';
+            document.getElementById('modalSubmit').textContent = 'Update';
+            document.getElementById('userModal').style.display = 'flex';
+        }
+
+        async function submitUserModal() {
+            const username = document.getElementById('modalUsername').value.trim();
+            const password = document.getElementById('modalPassword').value.trim();
+            const btn = document.getElementById('modalSubmit');
+
+            if (!username && !editingUser) return alert('Username required');
+
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                let action = editingUser ? (editingUser.type === 'rename' ? 'renameUser' : 'updateUser') : 'addUser';
+                let body = {};
+                let url = `/api/admin?code=${encodeURIComponent(CODE)}&action=${action}`;
+
+                if (action === 'renameUser') {
+                    body = { oldUsername: editingUser.oldName, newUsername: username };
+                } else if (action === 'updateUser') {
+                    url += `&username=${encodeURIComponent(editingUser.username)}`;
+                    body = { password };
+                } else {
+                    body = { username, password };
+                }
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    closeUserModal();
+                    fetchUsers();
+                } else {
+                    const data = await res.json();
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                alert('Connection error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Permanently delete user "${username}"?`)) return;
+            try {
+                const res = await fetch(`/api/admin?code=${encodeURIComponent(CODE)}&action=removeUser&username=${encodeURIComponent(username)}`);
+                if (res.ok) fetchUsers();
+                else alert('Delete failed');
+            } catch (e) { alert('Error: ' + e.message); }
         }
 
         function filterPastes() {
