@@ -46,85 +46,90 @@ async function verifyTurnstile(token, ip) {
 }
 
 export const handler = async (event) => {
-    if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors };
+    try {
+        if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors };
 
-    const qs = event.queryStringParameters || {};
-    const action = qs.action;
-    let body = {};
-    try { body = JSON.parse(event.body || '{}'); } catch { }
-    const clientIp = event.headers['x-forwarded-for'] || '';
+        const qs = event.queryStringParameters || {};
+        const action = qs.action;
+        let body = {};
+        try { body = JSON.parse(event.body || '{}'); } catch { }
+        const clientIp = event.headers['x-forwarded-for'] || '';
 
-    // ─── SIGNUP ────────────────────────────────────────────────────────────────
-    if (action === 'signup') {
-        const { username, password, captchaToken } = body;
-        if (!username || !password) return json({ error: 'Username and password required' }, 400);
-        if (username.length < 3 || username.length > 20) return json({ error: 'Username must be 3–20 characters' }, 400);
-        if (!/^[a-zA-Z0-9_]+$/.test(username)) return json({ error: 'Username: letters, numbers, underscores only' }, 400);
-        if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+        // ─── SIGNUP ────────────────────────────────────────────────────────────────
+        if (action === 'signup') {
+            const { username, password, captchaToken } = body;
+            if (!username || !password) return json({ error: 'Username and password required' }, 400);
+            if (username.length < 3 || username.length > 20) return json({ error: 'Username must be 3–20 characters' }, 400);
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) return json({ error: 'Username: letters, numbers, underscores only' }, 400);
+            if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
 
-        if (!captchaToken) return json({ error: 'CAPTCHA required' }, 400);
-        const captchaOk = await verifyTurnstile(captchaToken, clientIp);
-        if (!captchaOk) return json({ error: 'CAPTCHA verification failed' }, 400);
+            if (!captchaToken) return json({ error: 'CAPTCHA required' }, 400);
+            const captchaOk = await verifyTurnstile(captchaToken, clientIp);
+            if (!captchaOk) return json({ error: 'CAPTCHA verification failed' }, 400);
 
-        const existing = await blobGet('users', username.toLowerCase());
-        if (existing) return json({ error: 'Username already taken' }, 409);
+            const existing = await blobGet('users', username.toLowerCase());
+            if (existing) return json({ error: 'Username already taken' }, 409);
 
-        const salt = crypto.randomBytes(16).toString('hex');
-        const passwordHash = hashPassword(password, salt);
-        await blobSet('users', username.toLowerCase(), { username, passwordHash, salt, createdAt: new Date().toISOString() });
+            const salt = crypto.randomBytes(16).toString('hex');
+            const passwordHash = hashPassword(password, salt);
+            await blobSet('users', username.toLowerCase(), { username, passwordHash, salt, createdAt: new Date().toISOString() });
 
-        const sessionToken = crypto.randomBytes(32).toString('hex');
-        await blobSet('sessions', sessionToken, { username, createdAt: new Date().toISOString() });
+            const sessionToken = crypto.randomBytes(32).toString('hex');
+            await blobSet('sessions', sessionToken, { username, createdAt: new Date().toISOString() });
 
-        return json({ ok: true, token: sessionToken, username });
-    }
-
-    // ─── LOGIN ─────────────────────────────────────────────────────────────────
-    if (action === 'login') {
-        const { username, password } = body;
-        if (!username || !password) return json({ error: 'Username and password required' }, 400);
-
-        const userJson = await blobGet('users', username.toLowerCase());
-        if (!userJson) return json({ error: 'Invalid username or password' }, 401);
-
-        let user;
-        try { user = JSON.parse(userJson); } catch { return json({ error: 'Account data corrupted' }, 500); }
-
-        const hash = hashPassword(password, user.salt);
-        if (hash !== user.passwordHash) return json({ error: 'Invalid username or password' }, 401);
-
-        const sessionToken = crypto.randomBytes(32).toString('hex');
-        await blobSet('sessions', sessionToken, { username: user.username, createdAt: new Date().toISOString() });
-
-        return json({ ok: true, token: sessionToken, username: user.username });
-    }
-
-    // ─── VERIFY SESSION ────────────────────────────────────────────────────────
-    if (action === 'verify') {
-        const { token } = qs;
-        if (!token) return json({ error: 'Token required' }, 400);
-
-        const sessionJson = await blobGet('sessions', token);
-        if (!sessionJson) return json({ error: 'Invalid or expired session' }, 401);
-
-        let session;
-        try { session = JSON.parse(sessionJson); } catch { return json({ error: 'Session data corrupted' }, 500); }
-
-        const age = Date.now() - new Date(session.createdAt).getTime();
-        if (age > 7 * 24 * 60 * 60 * 1000) {
-            await blobDelete('sessions', token);
-            return json({ error: 'Session expired, please log in again' }, 401);
+            return json({ ok: true, token: sessionToken, username });
         }
 
-        return json({ ok: true, username: session.username });
-    }
+        // ─── LOGIN ─────────────────────────────────────────────────────────────────
+        if (action === 'login') {
+            const { username, password } = body;
+            if (!username || !password) return json({ error: 'Username and password required' }, 400);
 
-    // ─── LOGOUT ────────────────────────────────────────────────────────────────
-    if (action === 'logout') {
-        const { token } = body;
-        if (token) await blobDelete('sessions', token);
-        return json({ ok: true });
-    }
+            const userJson = await blobGet('users', username.toLowerCase());
+            if (!userJson) return json({ error: 'Invalid username or password' }, 401);
 
-    return json({ error: 'Unknown action' }, 400);
+            let user;
+            try { user = JSON.parse(userJson); } catch { return json({ error: 'Account data corrupted' }, 500); }
+
+            const hash = hashPassword(password, user.salt);
+            if (hash !== user.passwordHash) return json({ error: 'Invalid username or password' }, 401);
+
+            const sessionToken = crypto.randomBytes(32).toString('hex');
+            await blobSet('sessions', sessionToken, { username: user.username, createdAt: new Date().toISOString() });
+
+            return json({ ok: true, token: sessionToken, username: user.username });
+        }
+
+        // ─── VERIFY SESSION ────────────────────────────────────────────────────────
+        if (action === 'verify') {
+            const { token } = qs;
+            if (!token) return json({ error: 'Token required' }, 400);
+
+            const sessionJson = await blobGet('sessions', token);
+            if (!sessionJson) return json({ error: 'Invalid or expired session' }, 401);
+
+            let session;
+            try { session = JSON.parse(sessionJson); } catch { return json({ error: 'Session data corrupted' }, 500); }
+
+            const age = Date.now() - new Date(session.createdAt).getTime();
+            if (age > 7 * 24 * 60 * 60 * 1000) {
+                await blobDelete('sessions', token);
+                return json({ error: 'Session expired, please log in again' }, 401);
+            }
+
+            return json({ ok: true, username: session.username });
+        }
+
+        // ─── LOGOUT ────────────────────────────────────────────────────────────────
+        if (action === 'logout') {
+            const { token } = body;
+            if (token) await blobDelete('sessions', token);
+            return json({ ok: true });
+        }
+
+        return json({ error: 'Unknown action' }, 400);
+    } catch (err) {
+        console.error("Auth error:", err);
+        return json({ error: "Server error: " + err.message }, 500);
+    }
 };
