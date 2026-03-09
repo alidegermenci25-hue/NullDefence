@@ -9,6 +9,12 @@ const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET || "1x00000000000000000000
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 const json = (body, status = 200) => ({ statusCode: status, body: JSON.stringify(body), headers: { ...cors, "Content-Type": "application/json" } });
 
+function checkEnv() {
+    if (!SITE_ID || !TOKEN) {
+        throw new Error("Netlify Blobs not configured. Please set NETLIFY_SITE_ID and NETLIFY_ACCESS_TOKEN in your Netlify environment variables.");
+    }
+}
+
 function hashPassword(password, salt) {
     return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
 }
@@ -47,6 +53,7 @@ async function verifyTurnstile(token, ip) {
 
 export const handler = async (event) => {
     try {
+        checkEnv();
         if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors };
 
         const qs = event.queryStringParameters || {};
