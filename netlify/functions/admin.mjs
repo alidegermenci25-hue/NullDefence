@@ -103,6 +103,33 @@ export const handler = async (event) => {
         }
     }
 
+    // --- EDIT A PASTE ---
+    if (action === "edit") {
+        const id = qs.id;
+        let newContent;
+        try { newContent = JSON.parse(event.body || '{}').content; } catch { }
+        if (!id || !newContent) return { statusCode: 400, body: JSON.stringify({ error: "Missing id or content" }), headers: { ...cors, "Content-Type": "application/json" } };
+        try {
+            const res = await fetch(`${BLOBS_BASE}/${id}`, {
+                method: "PUT",
+                headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "text/plain; charset=utf-8" },
+                body: newContent,
+            });
+            if (!res.ok) throw new Error(`Blob PUT failed: ${res.status}`);
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ ok: true, id }),
+                headers: { ...cors, "Content-Type": "application/json" },
+            };
+        } catch (err) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ error: err.message }),
+                headers: { ...cors, "Content-Type": "application/json" },
+            };
+        }
+    }
+
     // --- VERIFY CODE (login check) ---
     if (action === "login" || !action) {
         return {

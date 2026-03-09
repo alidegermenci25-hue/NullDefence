@@ -1,5 +1,5 @@
 /* ====================================================
-   N U L L D E F E N S E  —  Client Logic v2
+   N U L L D E F E N S E  —  Client Logic v3 (Auth)
    ==================================================== */
 
 const $ = (s) => document.querySelector(s);
@@ -22,7 +22,129 @@ const toast = $("#toast");
 const toastText = $("#toastText");
 
 // =============================================
-//  LINE NUMBERS
+//  AUTHENTICATION
+// =============================================
+let currentAuthMode = 'login';
+let sessionToken = localStorage.getItem('nd_session_token');
+
+function updateAuthUI(username) {
+    if (username) {
+        $("#authBtns").style.display = 'none';
+        $("#userBtns").style.display = 'flex';
+        $("#navUser").textContent = username;
+    } else {
+        $("#authBtns").style.display = 'flex';
+        $("#userBtns").style.display = 'none';
+        $("#navUser").textContent = '';
+    }
+}
+
+async function checkSession() {
+    if (!sessionToken) return;
+    try {
+        const res = await fetch(`/api/auth?action=verify&token=${sessionToken}`);
+        if (res.ok) {
+            const data = await res.json();
+            updateAuthUI(data.username);
+        } else {
+            doLogout();
+        }
+    } catch (e) {
+        console.error("Session check failed", e);
+    }
+}
+
+window.openAuth = (mode) => {
+    currentAuthMode = mode;
+    switchTab(mode);
+    $("#authOverlay").style.display = 'flex';
+    $("#authErr").style.display = 'none';
+};
+
+window.closeAuth = () => {
+    $("#authOverlay").style.display = 'none';
+};
+
+window.switchTab = (mode) => {
+    currentAuthMode = mode;
+    const isLogin = mode === 'login';
+    $("#tabLogin").style.background = isLogin ? '#00e5ff' : 'none';
+    $("#tabLogin").style.color = isLogin ? '#000' : '#a0a5b1';
+    $("#tabSignup").style.background = isLogin ? 'none' : '#00e5ff';
+    $("#tabSignup").style.color = isLogin ? '#a0a5b1' : '#000';
+    $("#authSubmitBtn").textContent = isLogin ? 'Login' : 'Sign Up';
+    $("#captchaWrap").style.display = isLogin ? 'none' : 'block';
+};
+
+window.submitAuth = async () => {
+    const username = $("#authUser").value.trim();
+    const password = $("#authPass").value.trim();
+    const btn = $("#authSubmitBtn");
+    const err = $("#authErr");
+
+    if (!username || !password) {
+        err.textContent = "Username and password required";
+        err.style.display = 'block';
+        return;
+    }
+
+    const body = { username, password };
+    if (currentAuthMode === 'signup') {
+        const captchaToken = turnstile.getResponse();
+        if (!captchaToken) {
+            err.textContent = "Please complete the CAPTCHA";
+            err.style.display = 'block';
+            return;
+        }
+        body.captchaToken = captchaToken;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    err.style.display = 'none';
+
+    try {
+        const res = await fetch(`/api/auth?action=${currentAuthMode}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            sessionToken = data.token;
+            localStorage.setItem('nd_session_token', sessionToken);
+            updateAuthUI(data.username);
+            closeAuth();
+            showToast(`Welcome, ${data.username}!`);
+        } else {
+            err.textContent = data.error || "Authentication failed";
+            err.style.display = 'block';
+            if (currentAuthMode === 'signup') turnstile.reset();
+        }
+    } catch (e) {
+        err.textContent = "Connection error";
+        err.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = currentAuthMode === 'login' ? 'Login' : 'Sign Up';
+    }
+};
+
+window.doLogout = () => {
+    fetch('/api/auth?action=logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: sessionToken })
+    });
+    sessionToken = null;
+    localStorage.removeItem('nd_session_token');
+    updateAuthUI(null);
+    showToast("Logged out successfully");
+};
+
+// =============================================
+//  LINE NUMBERS & STATS
 // =============================================
 function updateLineNumbers() {
     const lines = codeEditor.value.split("\n").length;
@@ -33,9 +155,6 @@ function updateLineNumbers() {
     lineNumbers.innerHTML = nums.join("");
 }
 
-// =============================================
-//  STATS
-// =============================================
 function updateStats() {
     const val = codeEditor.value;
     const chars = val.length;
@@ -53,9 +172,6 @@ codeEditor.addEventListener("scroll", () => {
     lineNumbers.scrollTop = codeEditor.scrollTop;
 });
 
-// =============================================
-//  TAB KEY
-// =============================================
 codeEditor.addEventListener("keydown", (e) => {
     if (e.key === "Tab") {
         e.preventDefault();
@@ -68,18 +184,15 @@ codeEditor.addEventListener("keydown", (e) => {
 });
 
 // =============================================
-//  CLEAR
-// =============================================
-clearBtn.addEventListener("click", () => {
-    codeEditor.value = "";
-    codeEditor.dispatchEvent(new Event("input"));
-    codeEditor.focus();
-});
-
-// =============================================
 //  CREATE PASTE
 // =============================================
 createBtn.addEventListener("click", async () => {
+    if (!sessionToken) {
+        showToast("Please login to create a paste", "warn");
+        openAuth('login');
+        return;
+    }
+
     const content = codeEditor.value.trim();
     if (!content) {
         showToast("Write some code first!", "warn");
@@ -92,11 +205,15 @@ createBtn.addEventListener("click", async () => {
         const res = await fetch("/api/paste", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content }),
+            body: JSON.stringify({ content, sessionToken }),
         });
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
+            if (res.status === 401) {
+                doLogout();
+                throw new Error("Session expired. Please login again.");
+            }
             throw new Error(err.error || `HTTP ${res.status}`);
         }
 
@@ -116,8 +233,14 @@ createBtn.addEventListener("click", async () => {
     }
 });
 
+clearBtn.addEventListener("click", () => {
+    codeEditor.value = "";
+    codeEditor.dispatchEvent(new Event("input"));
+    codeEditor.focus();
+});
+
 // =============================================
-//  COPY
+//  COPY & UI
 // =============================================
 function copyToClipboard(inputId, btn) {
     const input = $(`#${inputId}`);
@@ -134,36 +257,26 @@ function copyToClipboard(inputId, btn) {
             btn.classList.remove("copied");
             spanEl.textContent = original;
         }, 1500);
-    }).catch(() => {
-        input.select();
-        document.execCommand("copy");
-        showToast("Copied!", "success");
     });
 }
 
 copyRawBtn.addEventListener("click", () => copyToClipboard("rawUrlInput", copyRawBtn));
 copyPsBtn.addEventListener("click", () => copyToClipboard("psOnelinerInput", copyPsBtn));
 
-// =============================================
-//  NEW PASTE
-// =============================================
 newPasteBtn.addEventListener("click", () => {
     resultSection.classList.add("hidden");
     editorSection.classList.remove("hidden");
     codeEditor.value = "";
-    codeEditor.dispatchEvent(new Event("input"));
+    updateLineNumbers();
+    updateStats();
     codeEditor.focus();
 });
 
-// =============================================
-//  TOAST
-// =============================================
 let toastTimer;
 function showToast(msg, type = "success") {
     toastText.textContent = msg;
     toast.className = `toast show ${type}`;
 
-    // Add icon based on type
     let icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
     if (type === "warn") icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
     if (type === "error") icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
@@ -215,32 +328,25 @@ function showToast(msg, type = "success") {
 
     function draw() {
         ctx.clearRect(0, 0, w, h);
-
         for (const p of particles) {
             p.x += p.vx;
             p.y += p.vy;
             p.pulse += 0.01;
-
             if (p.x < 0) p.x = w;
             if (p.x > w) p.x = 0;
             if (p.y < 0) p.y = h;
             if (p.y > h) p.y = 0;
-
             const a = p.alpha * (0.6 + Math.sin(p.pulse) * 0.4);
-
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(0, 255, 136, ${a})`;
             ctx.fill();
         }
-
-        // Draw connections
         for (let i = 0; i < particles.length; i++) {
             for (let j = i + 1; j < particles.length; j++) {
                 const dx = particles[i].x - particles[j].x;
                 const dy = particles[i].y - particles[j].y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
                 if (dist < 150) {
                     const lineAlpha = (1 - dist / 150) * 0.06;
                     ctx.beginPath();
@@ -252,15 +358,14 @@ function showToast(msg, type = "success") {
                 }
             }
         }
-
         requestAnimationFrame(draw);
     }
-
     window.addEventListener("resize", resize);
     init();
     draw();
 })();
 
-// --- Init ---
+// Start checks
+checkSession();
 updateLineNumbers();
 updateStats();

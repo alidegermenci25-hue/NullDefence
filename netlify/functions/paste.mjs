@@ -46,6 +46,27 @@ export const handler = async (event) => {
     try {
       const body = JSON.parse(event.body || "{}");
       const content = body.content;
+      const sessionToken = body.sessionToken;
+
+      // Verify session token
+      if (!sessionToken) {
+        return {
+          statusCode: 401,
+          body: JSON.stringify({ error: "You must be logged in to create a paste" }),
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        };
+      }
+
+      const authRes = await fetch(`https://api.netlify.com/api/v1/blobs/${SITE_ID}/sessions/${encodeURIComponent(sessionToken)}`, {
+        headers: { Authorization: `Bearer ${TOKEN}` },
+      });
+      if (!authRes.ok) {
+        return {
+          statusCode: 401,
+          body: JSON.stringify({ error: "Invalid or expired session. Please log in again." }),
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        };
+      }
 
       if (!content || typeof content !== "string") {
         return {

@@ -13,7 +13,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="./css/style.css" />
-
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
 <body>
@@ -42,8 +42,69 @@
         <span class="status-dot"></span>
         <span class="navbar__status-text">System Online</span>
       </div>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <!-- Logged-out state -->
+        <div id="authBtns" style="display:flex;gap:.5rem">
+          <button onclick="openAuth('login')"
+            style="background:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:.35rem .8rem;color:#a0a5b1;font-size:.78rem;cursor:pointer;font-family:inherit;transition:all .2s"
+            onmouseover="this.style.borderColor='rgba(0,229,255,.4)';this.style.color='#00e5ff'"
+            onmouseout="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='#a0a5b1'">Login</button>
+          <button onclick="openAuth('signup')"
+            style="background:#00e5ff;border:none;border-radius:8px;padding:.35rem .9rem;color:#000;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Sign Up</button>
+        </div>
+        <!-- Logged-in state -->
+        <div id="userBtns" style="display:none;align-items:center;gap:.5rem">
+          <span id="navUser" style="font-size:.78rem;color:#00e5ff;font-weight:600"></span>
+          <button onclick="doLogout()"
+            style="background:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:.35rem .7rem;color:#a0a5b1;font-size:.75rem;cursor:pointer;font-family:inherit">Logout</button>
+        </div>
+        <a href="/admin.html"
+          style="background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.25);border-radius:8px;padding:.35rem .8rem;color:#ffa500;font-size:.75rem;font-weight:600;text-decoration:none">⬡
+          Admin</a>
+      </div>
     </div>
   </nav>
+
+  <!-- ── AUTH MODAL ───────────────────────────────────── -->
+  <div id="authOverlay"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:1000;align-items:center;justify-content:center;padding:20px">
+    <div
+      style="background:#15181f;border:1px solid rgba(255,255,255,.07);border-radius:20px;width:100%;max-width:400px;padding:2rem;position:relative;box-shadow:0 40px 80px rgba(0,0,0,.6)">
+      <button onclick="closeAuth()"
+        style="position:absolute;right:1rem;top:1rem;background:none;border:none;color:#a0a5b1;font-size:1.2rem;cursor:pointer">✕</button>
+      <!-- Tabs -->
+      <div
+        style="display:flex;gap:4px;background:rgba(255,255,255,.04);border-radius:10px;padding:4px;margin-bottom:1.5rem">
+        <button id="tabLogin" onclick="switchTab('login')"
+          style="flex:1;padding:.5rem;border:none;border-radius:7px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;background:#00e5ff;color:#000;transition:all .2s">Login</button>
+        <button id="tabSignup" onclick="switchTab('signup')"
+          style="flex:1;padding:.5rem;border:none;border-radius:7px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;background:none;color:#a0a5b1;transition:all .2s">Sign
+          Up</button>
+      </div>
+      <div id="authUsername" style="margin-bottom:.9rem">
+        <label
+          style="display:block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#a0a5b1;margin-bottom:.4rem">Username</label>
+        <input id="authUser" type="text" placeholder="your_username"
+          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.75rem 1rem;color:#fff;font-size:.9rem;outline:none;font-family:inherit" />
+      </div>
+      <div style="margin-bottom:.9rem">
+        <label
+          style="display:block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#a0a5b1;margin-bottom:.4rem">Password</label>
+        <input id="authPass" type="password" placeholder="••••••••"
+          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.75rem 1rem;color:#fff;font-size:.9rem;outline:none;font-family:inherit" />
+      </div>
+      <!-- Turnstile CAPTCHA (signup only) -->
+      <div id="captchaWrap" style="margin-bottom:.9rem;display:none">
+        <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="dark" id="turnstileWidget"></div>
+      </div>
+      <div id="authErr"
+        style="background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);border-radius:8px;padding:.6rem 1rem;font-size:.8rem;color:#ff4d6d;margin-bottom:.8rem;display:none">
+      </div>
+      <button id="authSubmitBtn" onclick="submitAuth()"
+        style="width:100%;padding:.8rem;background:#00e5ff;color:#000;font-weight:800;font-size:.9rem;border:none;border-radius:10px;cursor:pointer;font-family:inherit">Login</button>
+    </div>
+  </div>
 
   <!-- Hero -->
   <header class="hero">

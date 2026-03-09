@@ -308,6 +308,44 @@
             pointer-events: none
         }
 
+        .btn-edit {
+            background: rgba(255, 165, 0, .06);
+            border-color: rgba(255, 165, 0, .2) !important;
+            color: #ffa500 !important
+        }
+
+        .btn-edit:hover {
+            background: rgba(255, 165, 0, .15) !important;
+        }
+
+        .btn-save {
+            background: var(--success);
+            color: #000;
+            border: none;
+            padding: .3rem .8rem;
+            border-radius: 6px;
+            font-size: .7rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none
+        }
+
+        .edit-area {
+            width: 100%;
+            background: #000;
+            color: #c9d1d9;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .78rem;
+            line-height: 1.7;
+            resize: vertical;
+            min-height: 200px;
+            outline: none;
+            display: none
+        }
+
         /* RAW VIEWER */
         .paste-body {
             display: none;
@@ -335,6 +373,12 @@
             padding: .15rem .5rem;
             color: var(--accent);
             font-weight: 600
+        }
+
+        .raw-toolbar .controls {
+            display: flex;
+            align-items: center;
+            gap: .6rem
         }
 
         .raw-content {
@@ -540,10 +584,17 @@
             </div>
             <div class="paste-body" id="body-${id}">
               <div class="raw-toolbar">
-                <span>Raw Content</span>
-                <span class="tag">ROOT VIEW</span>
+                <div style="display:flex;align-items:center;gap:.6rem">
+                  <span>Raw Content</span>
+                  <span class="tag">ROOT VIEW</span>
+                </div>
+                <div class="controls">
+                  <button class="btn-sm btn-edit" id="editBtn-${id}" onclick="startEdit('${id}')">Edit</button>
+                  <button class="btn-save" id="saveBtn-${id}" onclick="saveEdit('${id}')">Save Changes</button>
+                </div>
               </div>
               <pre class="raw-content" id="raw-${id}">Loading…</pre>
+              <textarea class="edit-area" id="edit-${id}"></textarea>
             </div>
           </div>`;
             }).join('');
@@ -577,6 +628,57 @@
 
         function openRaw(id) {
             window.open(`/raw/${id}`, '_blank');
+        }
+
+        function startEdit(id) {
+            const rawEl = document.getElementById(`raw-${id}`);
+            const editEl = document.getElementById(`edit-${id}`);
+            const editBtn = document.getElementById(`editBtn-${id}`);
+            const saveBtn = document.getElementById(`saveBtn-${id}`);
+
+            editEl.value = rawEl.textContent;
+            rawEl.style.display = 'none';
+            editEl.style.display = 'block';
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'block';
+            editEl.focus();
+        }
+
+        async function saveEdit(id) {
+            const editEl = document.getElementById(`edit-${id}`);
+            const rawEl = document.getElementById(`raw-${id}`);
+            const editBtn = document.getElementById(`editBtn-${id}`);
+            const saveBtn = document.getElementById(`saveBtn-${id}`);
+            const content = editEl.value;
+
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/admin?code=${encodeURIComponent(CODE)}&action=edit&id=${encodeURIComponent(id)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                const data = await res.json();
+                if (res.ok && data.ok) {
+                    rawEl.textContent = content;
+                    rawCache[id] = content;
+                    rawEl.style.display = 'block';
+                    editEl.style.display = 'none';
+                    editBtn.style.display = 'block';
+                    saveBtn.style.display = 'none';
+                    saveBtn.textContent = 'Save Changes';
+                    alert('Paste updated successfully!');
+                } else {
+                    alert('Update failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Changes';
+            }
         }
 
         function copyRawUrl(id) {
