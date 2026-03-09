@@ -11,3 +11,8 @@
   from = "/api/paste"
   to = "/.netlify/functions/paste"
   status = 200
+
+[[redirects]]
+  from = "/api/admin"
+  to = "/.netlify/functions/admin"
+  status = 200

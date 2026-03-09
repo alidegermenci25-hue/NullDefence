@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NullDefense — Admin Dashboard</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0c10;
+            --surface: #12151b;
+            --card: #15181f;
+            --card2: #1a1e27;
+            --accent: #00e5ff;
+            --text: #fff;
+            --dim: #a0a5b1;
+            --border: rgba(255, 255, 255, 0.06);
+            --danger: #ff4d6d;
+            --success: #00e5a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh
+        }
+
+        /* NAV */
+        nav {
+            background: rgba(21, 24, 31, .8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: .9rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            font-size: 1.1rem;
+            font-weight: 800
+        }
+
+        .nav-logo svg {
+            width: 24px;
+            height: 24px;
+            color: var(--accent);
+            filter: drop-shadow(0 0 6px rgba(0, 229, 255, .4))
+        }
+
+        .nav-logo em {
+            color: var(--accent);
+            font-style: normal
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem
+        }
+
+        .nav-badge {
+            background: rgba(0, 229, 255, .1);
+            border: 1px solid rgba(0, 229, 255, .2);
+            border-radius: 6px;
+            padding: .3rem .7rem;
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px
+        }
+
+        .nav-logout {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .4rem .9rem;
+            color: var(--dim);
+            font-size: .8rem;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .nav-logout:hover {
+            border-color: var(--danger);
+            color: var(--danger)
+        }
+
+        /* MAIN */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem
+        }
+
+        .page-header {
+            margin-bottom: 2rem
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: .3rem
+        }
+
+        .page-header p {
+            color: var(--dim);
+            font-size: .9rem
+        }
+
+        /* STATS ROW */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.2rem 1.5rem
+        }
+
+        .stat-card .label {
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--dim);
+            margin-bottom: .4rem
+        }
+
+        .stat-card .val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent)
+        }
+
+        /* SEARCH */
+        .search-bar {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: .8rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: 1.5rem
+        }
+
+        .search-bar svg {
+            color: var(--dim);
+            flex-shrink: 0
+        }
+
+        .search-bar input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: .9rem;
+            width: 100%;
+            font-family: 'Inter', sans-serif
+        }
+
+        .search-bar input::placeholder {
+            color: var(--dim)
+        }
+
+        /* PASTE LIST */
+        #pasteList {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem
+        }
+
+        .paste-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: border-color .2s
+        }
+
+        .paste-card:hover {
+            border-color: rgba(0, 229, 255, .2)
+        }
+
+        .paste-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            gap: 1rem
+        }
+
+        .paste-id {
+            display: flex;
+            align-items: center;
+            gap: .75rem
+        }
+
+        .paste-id-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px rgba(0, 229, 255, .5)
+        }
+
+        .paste-id-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .85rem;
+            color: var(--text)
+        }
+
+        .paste-id-date {
+            font-size: .72rem;
+            color: var(--dim);
+            margin-top: .2rem
+        }
+
+        .paste-actions {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            flex-shrink: 0
+        }
+
+        .btn-sm {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .4rem .9rem;
+            border-radius: 8px;
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            border: 1px solid transparent
+        }
+
+        .btn-show {
+            background: rgba(0, 229, 255, .08);
+            border-color: rgba(0, 229, 255, .2);
+            color: var(--accent)
+        }
+
+        .btn-show:hover {
+            background: rgba(0, 229, 255, .15)
+        }
+
+        .btn-raw {
+            background: rgba(255, 255, 255, .04);
+            border-color: var(--border);
+            color: var(--dim)
+        }
+
+        .btn-raw:hover {
+            border-color: rgba(255, 255, 255, .2);
+            color: var(--text)
+        }
+
+        .btn-copy {
+            background: rgba(255, 255, 255, .04);
+            border-color: var(--border);
+            color: var(--dim)
+        }
+
+        .btn-copy:hover {
+            border-color: rgba(0, 229, 255, .2);
+            color: var(--accent)
+        }
+
+        /* RAW VIEWER */
+        .paste-body {
+            display: none;
+            border-top: 1px solid var(--border)
+        }
+
+        .paste-body.open {
+            display: block
+        }
+
+        .raw-toolbar {
+            background: rgba(0, 0, 0, .3);
+            padding: .6rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: .72rem;
+            color: var(--dim)
+        }
+
+        .raw-toolbar .tag {
+            background: rgba(0, 229, 255, .08);
+            border: 1px solid rgba(0, 229, 255, .15);
+            border-radius: 4px;
+            padding: .15rem .5rem;
+            color: var(--accent);
+            font-weight: 600
+        }
+
+        .raw-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .78rem;
+            line-height: 1.7;
+            padding: 1.25rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #0a0b0e;
+            color: #c9d1d9
+        }
+
+        /* LOADING / EMPTY */
+        .spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            gap: 1rem;
+            color: var(--dim);
+            font-size: .9rem
+        }
+
+        .spin {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .empty {
+            text-align: center;
+            padding: 4rem;
+            color: var(--dim)
+        }
+
+        .empty svg {
+            margin-bottom: 1rem;
+            opacity: .4
+        }
+
+        /* SCROLLBAR */
+        .raw-content::-webkit-scrollbar {
+            width: 6px
+        }
+
+        .raw-content::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        .raw-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .1);
+            border-radius: 3px
+        }
+
+        @media(max-width:600px) {
+            .stats-row {
+                grid-template-columns: 1fr
+            }
+
+            .paste-actions {
+                flex-wrap: wrap
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" stroke-linejoin="round" />
+                <path d="M12 22V12M12 12l9-5M12 12L3 7" stroke-linecap="round" />
+            </svg>
+            Null<em>Defense</em>
+        </div>
+        <div class="nav-right">
+            <span class="nav-badge">⬡ Root Access</span>
+            <button class="nav-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <main>
+        <div class="page-header">
+            <h1>Admin Dashboard</h1>
+            <p>View and manage all protected pastes</p>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">Total Pastes</div>
+                <div class="val" id="statTotal">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Access Level</div>
+                <div class="val" style="font-size:1.1rem;line-height:1.8;color:var(--success)">Root</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Site</div>
+                <div class="val" style="font-size:.9rem;line-height:2;color:var(--dim)">nulldefence.netlify.app</div>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="searchInput" placeholder="Search paste ID…" oninput="filterPastes()" />
+        </div>
+
+        <div id="pasteList">
+            <div class="spinner">
+                <div class="spin"></div>Loading pastes…
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let CODE = '';
+        let allPastes = [];
+        let expanded = {};
+        let rawCache = {};
+
+        function logout() {
+            sessionStorage.removeItem('nd_admin_code');
+            window.location.href = '/admin.html';
+        }
+
+        async function init() {
+            CODE = sessionStorage.getItem('nd_admin_code');
+            if (!CODE) { window.location.href = '/admin.html'; return; }
+
+            try {
+                const res = await fetch(`/api/admin?code=${encodeURIComponent(CODE)}&action=list`);
+                if (res.status === 401) { logout(); return; }
+                const data = await res.json();
+                allPastes = data.pastes || [];
+                document.getElementById('statTotal').textContent = allPastes.length;
+                renderList(allPastes);
+            } catch (e) {
+                document.getElementById('pasteList').innerHTML = `<div class="empty"><p>Failed to load pastes: ${e.message}</p></div>`;
+            }
+        }
+
+        function filterPastes() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            renderList(allPastes.filter(p => {
+                const key = (p.key || p.id || String(p)).toLowerCase();
+                return key.includes(q);
+            }));
+        }
+
+        function renderList(pastes) {
+            const list = document.getElementById('pasteList');
+            if (!pastes.length) {
+                list.innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><p>No pastes found</p></div>`;
+                return;
+            }
+            list.innerHTML = pastes.map(p => {
+                const id = p.key || p.id || String(p);
+                const date = p.last_modified ? new Date(p.last_modified).toLocaleString() : '';
+                return `
+          <div class="paste-card" id="card-${id}">
+            <div class="paste-header">
+              <div class="paste-id">
+                <div class="paste-id-dot"></div>
+                <div>
+                  <div class="paste-id-text">${id}</div>
+                  ${date ? `<div class="paste-id-date">${date}</div>` : ''}
+                </div>
+              </div>
+              <div class="paste-actions">
+                <button class="btn-sm btn-copy" onclick="copyRawUrl('${id}')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  Copy URL
+                </button>
+                <button class="btn-sm btn-raw" onclick="openRaw('${id}')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Open Raw
+                </button>
+                <button class="btn-sm btn-show" id="btn-${id}" onclick="toggleView('${id}')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Show
+                </button>
+              </div>
+            </div>
+            <div class="paste-body" id="body-${id}">
+              <div class="raw-toolbar">
+                <span>Raw Content</span>
+                <span class="tag">ROOT VIEW</span>
+              </div>
+              <pre class="raw-content" id="raw-${id}">Loading…</pre>
+            </div>
+          </div>`;
+            }).join('');
+        }
+
+        async function toggleView(id) {
+            const body = document.getElementById(`body-${id}`);
+            const btn = document.getElementById(`btn-${id}`);
+            const isOpen = body.classList.contains('open');
+
+            if (isOpen) {
+                body.classList.remove('open');
+                btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Show`;
+            } else {
+                body.classList.add('open');
+                btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Hide`;
+                if (!rawCache[id]) {
+                    const rawEl = document.getElementById(`raw-${id}`);
+                    try {
+                        const res = await fetch(`/api/admin?code=${encodeURIComponent(CODE)}&action=view&id=${encodeURIComponent(id)}`);
+                        const data = await res.json();
+                        const content = data.content || data.error || 'Empty';
+                        rawCache[id] = content;
+                        rawEl.textContent = content;
+                    } catch (e) {
+                        rawEl.textContent = 'Error: ' + e.message;
+                    }
+                }
+            }
+        }
+
+        function openRaw(id) {
+            window.open(`/raw/${id}`, '_blank');
+        }
+
+        function copyRawUrl(id) {
+            const url = `${location.origin}/raw/${id}`;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.querySelector(`#card-${id} .btn-copy`);
+                const orig = btn.innerHTML;
+                btn.textContent = 'Copied!';
+                btn.style.color = 'var(--success)';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
