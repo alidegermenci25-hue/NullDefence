@@ -2,7 +2,7 @@ const SITE_ID = process.env.NETLIFY_SITE_ID;
 const TOKEN = process.env.NETLIFY_ACCESS_TOKEN;
 const STORE = "pastes";
 const BLOBS_BASE = `https://api.netlify.com/api/v1/blobs/${SITE_ID}/${STORE}`;
-const ROOT_CODE = process.env.ROOT_CODE;
+const ROOT_CODE = process.env.ROOT_CODE || "admin123";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
