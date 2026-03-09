@@ -4,7 +4,7 @@ const STORE = "pastes";
 const BLOBS_BASE = `https://api.netlify.com/api/v1/blobs/${SITE_ID}/${STORE}`;
 const ROOT_CODE = "96399639";
 
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
 export const handler = async (event) => {
     const { httpMethod, queryStringParameters } = event;
@@ -67,6 +67,31 @@ export const handler = async (event) => {
             return {
                 statusCode: 200,
                 body: JSON.stringify({ id, content }),
+                headers: { ...cors, "Content-Type": "application/json" },
+            };
+        } catch (err) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ error: err.message }),
+                headers: { ...cors, "Content-Type": "application/json" },
+            };
+        }
+    }
+
+    // --- DELETE A PASTE ---
+    if (action === "delete") {
+        const id = qs.id;
+        if (!id) return { statusCode: 400, body: JSON.stringify({ error: "Missing id" }), headers: { ...cors, "Content-Type": "application/json" } };
+        try {
+            const res = await fetch(`${BLOBS_BASE}/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${TOKEN}` },
+            });
+            if (res.status === 404) return { statusCode: 404, body: JSON.stringify({ error: "Paste not found" }), headers: { ...cors, "Content-Type": "application/json" } };
+            if (!res.ok) throw new Error(`Blob DELETE failed: ${res.status}`);
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ ok: true, deleted: id }),
                 headers: { ...cors, "Content-Type": "application/json" },
             };
         } catch (err) {
