@@ -4,7 +4,6 @@ const SITE_ID = process.env.NETLIFY_SITE_ID;
 const TOKEN = process.env.NETLIFY_ACCESS_TOKEN;
 const BASE = `https://api.netlify.com/api/v1/blobs/${SITE_ID}`;
 const AUTH = { Authorization: `Bearer ${TOKEN}` };
-const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 const json = (body, status = 200) => ({ statusCode: status, body: JSON.stringify(body), headers: { ...cors, "Content-Type": "application/json" } });
@@ -39,16 +38,6 @@ async function blobDelete(store, key) {
     await fetch(`${BASE}/${store}/${encodeURIComponent(key)}`, { method: 'DELETE', headers: AUTH });
 }
 
-async function verifyTurnstile(token, ip) {
-    try {
-        const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `secret=${TURNSTILE_SECRET}&response=${encodeURIComponent(token)}&remoteip=${encodeURIComponent(ip || '')}`,
-        });
-        const data = await res.json();
-        return data.success === true;
-    } catch { return false; }
 }
 
 export const handler = async (event) => {
@@ -69,10 +58,6 @@ export const handler = async (event) => {
             if (username.length < 3 || username.length > 20) return json({ error: 'Username must be 3–20 characters' }, 400);
             if (!/^[a-zA-Z0-9_]+$/.test(username)) return json({ error: 'Username: letters, numbers, underscores only' }, 400);
             if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
-
-            if (!captchaToken) return json({ error: 'CAPTCHA required' }, 400);
-            const captchaOk = await verifyTurnstile(captchaToken, clientIp);
-            if (!captchaOk) return json({ error: 'CAPTCHA verification failed' }, 400);
 
             const existing = await blobGet('users', username.toLowerCase());
             if (existing) return json({ error: 'Username already taken' }, 409);

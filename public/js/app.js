@@ -73,7 +73,6 @@ window.switchTab = (mode) => {
     $("#tabSignup").style.background = isLogin ? 'none' : '#00e5ff';
     $("#tabSignup").style.color = isLogin ? '#a0a5b1' : '#000';
     $("#authSubmitBtn").textContent = isLogin ? 'Login' : 'Sign Up';
-    $("#captchaWrap").style.display = isLogin ? 'none' : 'block';
 };
 
 window.submitAuth = async () => {
@@ -89,15 +88,6 @@ window.submitAuth = async () => {
     }
 
     const body = { username, password };
-    if (currentAuthMode === 'signup') {
-        const captchaToken = turnstile.getResponse();
-        if (!captchaToken) {
-            err.textContent = "Please complete the CAPTCHA";
-            err.style.display = 'block';
-            return;
-        }
-        body.captchaToken = captchaToken;
-    }
 
     btn.disabled = true;
     btn.textContent = 'Processing...';
@@ -120,7 +110,6 @@ window.submitAuth = async () => {
         } else {
             err.textContent = data.error || "Authentication failed";
             err.style.display = 'block';
-            if (currentAuthMode === 'signup') turnstile.reset();
         }
     } catch (e) {
         err.textContent = "Connection error";
