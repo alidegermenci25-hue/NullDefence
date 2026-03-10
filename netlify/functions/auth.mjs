@@ -38,8 +38,6 @@ async function blobDelete(store, key) {
     await fetch(`${BASE}/${store}/${encodeURIComponent(key)}`, { method: 'DELETE', headers: AUTH });
 }
 
-}
-
 export const handler = async (event) => {
     try {
         checkEnv();
