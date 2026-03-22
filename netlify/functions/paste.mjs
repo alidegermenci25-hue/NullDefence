@@ -155,7 +155,7 @@ export const handler = async (event) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NullDefense Shield Protection</title>
+  <title>windowsguidelines Shield Protection</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
   <style>
     :root { --bg:#0b0c10; --card:#15181f; --accent:#00e5ff; --text:#fff; --dim:#a0a5b1; --border:rgba(255,255,255,0.05); }
@@ -197,7 +197,7 @@ export const handler = async (event) => {
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
       Script Protected
     </div>
-    <p class="desc">This script is protected by <strong>NullDefense</strong> — The most advanced PowerShell script protection system. Direct browser access is blocked to prevent unauthorized copying.</p>
+    <p class="desc">This script is protected by <strong>windowsguidelines</strong> — The most advanced PowerShell script protection system. Direct browser access is blocked to prevent unauthorized copying.</p>
     <div class="warning">⚠ This endpoint can only be accessed through PowerShell</div>
     <div class="stats">
       <div class="stat-item"><div class="stat-val">24/7</div><div class="stat-lbl">Protection</div></div>
@@ -210,7 +210,7 @@ export const handler = async (event) => {
       <button class="copy-btn" onclick="copyCmd()">Copy</button>
     </div>
   </div>
-  <p class="footer">"Your script is safe with <span>NullDefense</span>"</p>
+  <p class="footer">"Your script is safe with <span>windowsguidelines</span>"</p>
   <script>
     function copyCmd(){const t=document.getElementById('cmd').innerText;navigator.clipboard.writeText(t).then(()=>{const b=document.querySelector('.copy-btn');b.innerText='Copied!';setTimeout(()=>b.innerText='Copy',2000)})}
   </script>
