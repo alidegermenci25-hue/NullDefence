@@ -1,7 +1,7 @@
 {
-  "name": "nulldefense",
+  "name": "windowsguidelines",
   "version": "1.0.0",
-  "description": "NullDefense — Raw text paste service for PowerShell irm | iex",
+  "description": "windowsguidelines — Raw text paste service for PowerShell irm | iex",
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
     "nanoid": "^5.0.9",
